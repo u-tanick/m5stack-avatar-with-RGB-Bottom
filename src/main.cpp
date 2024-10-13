@@ -150,6 +150,7 @@ void testServo() {
 
 
 // ----------------------------------------------
+// main Setup
 void setup() {
   // 設定用の情報を抽出
   auto cfg = M5.config();
@@ -170,7 +171,6 @@ void setup() {
 
   // for Servo(初期セットアップ)
   Servo_setup();
-  // Servo_setup2();
 
   // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
   M5.Power.setExtOutput(!system_config.getUseTakaoBase());
@@ -200,7 +200,7 @@ void setup() {
 }
 
 // ----------------------------------------------
-char speechText[100];  // フォーマットされた文字列を格納するためのバッファ
+// main Loop
 void loop() {
 
 // CoreS3のボタン処理有効化（画面=タッチパネルを[右][中央][左]に3等分した領域がそれぞれBtnA, BtnB, BtnCに対応）
