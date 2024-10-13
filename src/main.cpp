@@ -16,31 +16,12 @@ goblib::UnifiedButton unifiedButton;
 #endif
 
 // ----------------------------------------------
-// for Servo
-// サーボモータを使用する場合はこちらをインポートの上、stack-chan-testerを参考に実装
-// https://github.com/mongonta0716/stack-chan-tester
-#include <Stackchan_servo.h>
-
-#define START_DEGREE_VALUE_X 90
-#define START_DEGREE_VALUE_Y 90
-
-StackchanSERVO servo;
-StackchanSystemConfig system_config; // Use for Servo and SD
-bool core_port_a = false;         // Core1のPortAを使っているかどうか
-
-// ----------------------------------------------
-// for SD Card
-// SDカードを使用する場合はこちらをインポートの上、stack-chan-testerを参考に実装
-// #include <SD.h>
-
-// ----------------------------------------------
 // for Avatar
-#include <Avatar.h> // https://github.com/meganetaaan/m5stack-avatar
+#include <Avatar.h>
 #include "face/SacabambaspisFace.h"
 using namespace m5avatar;
 Avatar avatar;
 ColorPalette *cp;
-
 
 // ----------------------------------------------
 // for RGB Bottom
@@ -51,6 +32,7 @@ ColorPalette *cp;
 // NeoPixelオブジェクトを作成
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
+// NeoPixelを順に色を変えつつ点灯
 void doIllumination() {
   // 赤色
   for(int i=0; i<NUMPIXELS; i++) {
@@ -79,8 +61,13 @@ void doIllumination() {
 }
 
 // ----------------------------------------------
-// Any Functions
+// for Servo
+#include <Stackchan_servo.h>
 #define USE_SERVO
+
+StackchanSERVO servo;
+StackchanSystemConfig system_config; // Use for Servo and SD
+
 #ifdef USE_SERVO
 #if defined(ARDUINO_M5STACK_CORES3)
   // #define SERVO_PIN_X 18  //CoreS3 PORT C
@@ -96,16 +83,9 @@ int servo_offset_x = 0;  // X軸サーボのオフセット（90°からの+-で
 int servo_offset_y = 0;  // Y軸サーボのオフセット（90°からの+-で設定）
 #endif
 
+// サーボの初期セットアップ用
 void Servo_setup() {
 #ifdef USE_SERVO
-
-  if(SERVO_PIN_X == 1) {
-      // M5Stack CoreS3でPort.Aを使う場合は内部I2CをOffにする必要がある。
-      // M5.In_I2C.release();
-      // バッテリーアイコンも表示不可となるため非表示
-      avatar.setBatteryIcon(false);
-  }
-
   if (servo_x.attach(SERVO_PIN_X, START_DEGREE_VALUE_X, DEFAULT_MICROSECONDS_FOR_0_DEGREE, DEFAULT_MICROSECONDS_FOR_180_DEGREE)) {
     Serial.print("Error attaching servo x");
   }
@@ -122,6 +102,7 @@ void Servo_setup() {
 #endif
 }
 
+// X軸動作用
 void moveX(int x, uint32_t millis_for_move = 0) {
 #ifdef USE_SERVO
   if (millis_for_move == 0) {
@@ -132,6 +113,7 @@ void moveX(int x, uint32_t millis_for_move = 0) {
 #endif
 }
 
+// Y軸動作用
 void moveY(int y, uint32_t millis_for_move = 0) {
 #ifdef USE_SERVO
   if (millis_for_move == 0) {
@@ -142,6 +124,7 @@ void moveY(int y, uint32_t millis_for_move = 0) {
 #endif
 }
 
+// サーボのテスト挙動用
 void testServo() {
 #ifdef USE_SERVO
   for (int i=0; i<2; i++) {
@@ -162,6 +145,9 @@ void testServo() {
 #endif
 }
 
+// ----------------------------------------------
+// Any Functions
+
 
 // ----------------------------------------------
 void setup() {
@@ -179,60 +165,27 @@ void setup() {
   unifiedButton.begin(&M5.Display, goblib::UnifiedButton::appearance_t::transparent_all);
 #endif
 
-  // ログ設定
-  M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_NONE);
-  M5.Log.setLogLevel(m5::log_target_serial, ESP_LOG_INFO);
-  M5.Log.setEnableColor(m5::log_target_serial, false);
-  M5_LOGI("Hello World");
-
   // スピーカーのボリューム設定(0 - 255)
   M5.Speaker.setVolume(100);
 
+  // for Servo(初期セットアップ)
   Servo_setup();
+  // Servo_setup2();
 
-  // if (M5.getBoard() == m5::board_t::board_M5Stack) {
-  //   if (system_config.getServoInfo(AXIS_X)->pin == 22) {
-  //     // M5Stack CoreS3の場合、Port.Aを使う場合は内部I2CをOffにする必要がある。バッテリー表示は不可。
-  //     // バッテリーアイコンを非表示
-  //     avatar.setBatteryIcon(false);
-  //     M5.In_I2C.release();
-  //     core_port_a = true;
-  //   }
-  // } else {
-  //   // バッテリーアイコンを表示
-  //   avatar.setBatteryIcon(true);
-  // }
-  // // for Servo
-  // servo.begin(system_config.getServoInfo(AXIS_X)->pin, system_config.getServoInfo(AXIS_X)->start_degree,
-  //             system_config.getServoInfo(AXIS_X)->offset,
-  //             system_config.getServoInfo(AXIS_Y)->pin, system_config.getServoInfo(AXIS_Y)->start_degree,
-  //             system_config.getServoInfo(AXIS_Y)->offset,
-  //             (ServoType)system_config.getServoType());
+  // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
+  M5.Power.setExtOutput(!system_config.getUseTakaoBase());
 
-  M5.Power.setExtOutput(!system_config.getUseTakaoBase()); // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
-
-  // M5_LOGI("ServoType: %d\n", system_config.getServoType());
-
-  // 顔のサイズやポジション変更
-  // 例：m5atomS3用
-  // M5.Lcd.setRotation(0);
-  // avatar.setScale(0.50);
-  // avatar.setPosition(-60, -96);
-
-  // 顔の色変更
-  // TFT_WHITEなど既定の色が多数用意されている
-  // オリジナルの色は以下のコードで定義可能
-  // uint16_t customColor = 0;
-  // customColor = M5.Lcd.color565(255,140,50);
+  // 顔の色セットを指定
   cp = new ColorPalette();
   cp->set(COLOR_PRIMARY, TFT_WHITE);
   cp->set(COLOR_BACKGROUND, TFT_DARKGRAY);
   avatar.setColorPalette(*cp);
 
+  // アバターの初期設定、多色対応のため引数に 8 をセット
   avatar.init(8);
 
   // フォントの指定
-  avatar.setSpeechFont(&fonts::lgfxJapanGothicP_16);
+  avatar.setSpeechFont(&fonts::lgfxJapanGothicP_12);
 
   // すべてのLEDを消す
   pixels.clear();
@@ -240,8 +193,9 @@ void setup() {
 
   // サーボテスト挙動
   // testServo();
-    moveX(90);
-    moveY(90);
+  // サーボ初期位置セット
+  moveX(90);
+  moveY(90);
 
 }
 
@@ -257,7 +211,7 @@ void loop() {
   M5.update();
 
   // ボタンA
-  // スピーカーを鳴らす、M5Stack-Avatarの表情変更、M5Stack-Avatarの台詞表示
+  // 表情とテキストを表示するだけ
   if (M5.BtnA.wasPressed()) {
       M5.Speaker.tone(1000, 200);
       avatar.setExpression(Expression::Happy);
@@ -265,22 +219,19 @@ void loop() {
   }
 
   // ボタンB
-  // M5Stack-Avatarの台詞をテキスト変数で渡して表示、変数をログに出力
+  // 顔を上下に振る
   if (M5.BtnB.wasPressed()) {
       M5.Speaker.tone(1500, 200);
       avatar.setExpression(Expression::Neutral);
-      char buff[100];
-      sprintf(buff,"こんにちわ！");
-      avatar.setSpeechText(buff);
+      avatar.setSpeechText("こんにちわ！");
       for (int i=0; i<2; i++) {
         moveY(50);
         moveY(90);
       }
-      M5_LOGI("SpeechText: %c\n", buff);
   }
 
   // ボタンC
-  // M5Stack-Avatarの顔変更
+  // 顔を変更し、RGBボトムを点灯
   if (M5.BtnC.wasPressed()) {
       M5.Speaker.tone(2000, 200);
       cp = new ColorPalette();
@@ -289,6 +240,7 @@ void loop() {
       avatar.setColorPalette(*cp);
       avatar.setSpeechText("ばすぴすー");
       avatar.setFace(new SacabambaspisFace());
+      // RGBボトムを点灯
       doIllumination();
   }
 
