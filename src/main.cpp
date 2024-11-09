@@ -219,15 +219,19 @@ void loop() {
   }
 
   // ボタンB
-  // 顔を上下に振る
+  // 顔を上下左右に大きく動かす
   if (M5.BtnB.wasPressed()) {
       M5.Speaker.tone(1500, 200);
       avatar.setExpression(Expression::Neutral);
       avatar.setSpeechText("こんにちわ！");
-      for (int i=0; i<2; i++) {
-        moveY(50);
-        moveY(90);
-      }
+      moveY(65);
+      moveX(120);
+      moveY(105);
+      moveX(60);
+      moveY(65);
+      moveX(90);
+      moveY(105);
+      moveY(90);
   }
 
   // ボタンC
